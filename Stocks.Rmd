@@ -1,0 +1,282 @@
+---
+title: "Stock"
+author: "Samantha Salgado"
+date: "5/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library("tidyverse")
+```
+
+## R Markdown
+```{r}
+library(anytime)
+hits = read.csv(file="https://raw.githubusercontent.com/sam1230/DataScience/master/appleData.csv")
+stocks = read.csv(file="/Users/samantha/Downloads/all_stocks_5yr.csv")
+
+head(stocks)
+```
+```{r}
+hits$Date = as.Date(hits$Date)
+hits
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+stocks$date = as.character(stocks$date)
+head(stocks)
+```
+
+
+Question 1: How much do you profit after buying and holding one stock after 4 years? 
+```{r}
+oneYear = "2013-05-29"
+today = "2017-12-27"
+master = filter(stocks, date == oneYear | date == today)
+```
+
+
+
+```{r}
+colBefore = filter(stocks, date == oneYear )
+colAfter = filter(stocks, date == today )
+
+colAfter <- subset(colAfter, select = c("date", "close", "Name"))
+colBefore <- subset(colBefore, select = c( "close", "Name"))
+colnames(colAfter) <- c("date", "FinalPrice", "Name")
+
+buyHold = merge(colAfter, colBefore, by= "Name")
+
+buyHold = buyHold %>% 
+  mutate(profit = FinalPrice - close)
+head(buyHold)
+```
+
+#Now of course we only want the stocks that will make us the most money, so lets look at only the stocks that profited more than $600. 
+```{r}
+largeProfit = buyHold %>% filter (profit > 600)
+largeProfit
+```
+
+#Pretty nice profit you can make by just keeping your money in the market with one of these stocks. 
+
+
+
+#There are quite a few stocks in the data set, but we will narrow it down to a few to view a few different strategies. 
+
+#If you're not looking for a long term investment, maybe you could settle with about 200 dollars of profit in about a year and a half. 
+```{r}
+
+shortBefore = filter(stocks, date == "2016-01-20" )
+shortAfter = filter(stocks, date == "2017-06-13" )
+
+shortAfter <- subset(shortAfter, select = c("date", "close", "Name"))
+shortBefore <- subset(shortBefore, select = c( "close", "Name"))
+colnames(shortAfter) <- c("date", "FinalPrice", "Name")
+
+shortbuyHold = merge(shortAfter, shortBefore, by= "Name")
+
+shortbuyHold = shortbuyHold %>% 
+  mutate(profit = FinalPrice - close)
+shortbuyHold = filter(shortbuyHold, profit > 200)
+shortbuyHold
+```
+```{r}
+p<-ggplot(data=shortbuyHold, aes(x=Name, y=profit)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()
+p
+```
+
+#A year is still pretty long, so we can look at profits over $50 in about 2 months
+```{r}
+
+
+shortBefore = filter(stocks, date == "2017-10-23" )
+shortAfter = filter(stocks, date == "2017-12-11" )
+
+shortAfter <- subset(shortAfter, select = c("date", "close", "Name"))
+shortBefore <- subset(shortBefore, select = c( "close", "Name"))
+colnames(shortAfter) <- c("Date", "FinalPrice", "Name")
+
+reallyshortbuyHold = merge(shortAfter, shortBefore, by= "Name")
+
+reallyshortbuyHold = reallyshortbuyHold %>% 
+  mutate(profit = FinalPrice - close)
+reallyshortbuyHold = filter(reallyshortbuyHold, profit > 50)
+reallyshortbuyHold
+```
+
+
+Q2 Which category of stocks have the most movement over time?
+
+This allows investors to see which stocks can be momentum stocks, and which stocks should be bought as dividend stocks. 
+```{r}
+stockTicks = c("AAPL", "ABBV", "ABC", "ADB", "ACN",  "AMGN", "AMD", "AMZN", "ANTM", "AON", "AAL")
+newStocks = filter(stocks, Name %in% stockTicks)
+colBefore = filter(newStocks, date == "2017-03-13" )
+colAfter = filter(newStocks, date == "2017-12-13" )
+
+colAfter <- subset(colAfter, select = c("date", "close", "Name"))
+colBefore <- subset(colBefore, select = c( "close", "Name"))
+colnames(colAfter) <- c("date", "FinalPrice", "Name")
+
+movement = merge(colAfter, colBefore, by= "Name")
+
+movement = movement %>% 
+  mutate(profit = FinalPrice - close)
+movement["cat"] = "Technology"
+
+stockTicks = c("AAPL", "ABBV", "ABC", "ADB", "ACN",  "AMGN", "AMD", "AMZN", "ANTM", "AON", "AAL")
+
+
+movement[movement$Name=='ACN',]$cat = "contracting"
+
+
+movement[movement$Name=='AON',]$cat = "finance"
+movement[movement$Name=='AMGN',]$cat = "pharmaceutical"
+movement[movement$Name=='ABBV',]$cat = "pharmaceutical"
+movement[movement$Name=='ANTM',]$cat = "insurance"
+movement[movement$Name=='ABC',]$cat = "pharmaceutical"
+
+
+
+
+```
+
+
+
+```{r}
+group_by(movement,cat)  %>% ggplot(aes(x=Name,y=profit,color=cat)) + geom_point() + ggtitle("Price Fluctuation")
+```
+#The technology sector moves the most, with pharmaceutical being fairly stagnant. 
+
+
+
+
+Question 3: Is there correlation between companies in the same sector of the market? What about companies for different fields? 
+
+
+
+```{r}
+one = filter(stocks, Name == "AON") 
+one = filter(one, as.Date(date) > "2017-10-10")
+two = filter(stocks, Name == "AMZN")
+two = filter(two, as.Date(date) > "2017-10-10")
+
+```
+#Correlation between close prices of Aon and Amazon. 
+```{r}
+cor(one$close,two$close)
+```
+#Companies in different fields, relatively low correlation. Investors should look at correlation between sectors of the market when choosing sectors they wish to invest in. 
+
+#Correlation between close prices of Amgen and Apple, different sectors 
+```{r}
+one = filter(stocks, Name == "AMGN") 
+one = filter(one, as.Date(date) > "2017-10-10")
+two = filter(stocks, Name == "AAPL")
+two = filter(two, as.Date(date) > "2017-10-10")
+cor(one$close,two$close)
+```
+
+#Correlation between close prices of Amazon and Apple, same sector.
+```{r}
+one = filter(stocks, Name == "AMZN") 
+one = filter(one, as.Date(date) > "2017-08-10")
+two = filter(stocks, Name == "AAPL")
+two = filter(two, as.Date(date) > "2017-08-10")
+
+
+
+```
+#Correlation between close prices of Amazon and Apple
+```{r}
+cor(one$close,two$close)
+```
+
+
+Question 4
+
+#Does Google searches have any affect on stock price fluctuation? 
+
+#Plots the Apple's stock history from the begining of January to February of 2018. 
+```{r}
+data = filter(stocks, Name == "AAPL") 
+data$date = as.Date(data$date)
+data = filter(data, date > "2017-01-01")
+
+p <- ggplot(data, aes(x=date, y=close)) +
+  geom_line() + 
+  xlab("")
+p
+```
+
+
+#Graph of google search hits from the google trends data set. Plots the amount of searches of Apple the technology company from the begining of January to February of 2018.
+```{r}
+
+p <- ggplot(hits, aes(x=Date, y=Hits)) +
+  geom_line() + 
+  xlab("")
+p
+```
+
+
+
+#Conclusion: As you can see from the two graphs, there is hardly any correlation between the fluctuation in price. To get further analysis on whether internet search history can indicate stock price, we must look at if these searches were positive or negative. 
+
+
+Question 5, would day trading yield same profit as buy and hold strategy? 
+
+
+#Going back to previous analysis, we can see that with the buy and hold strategy for a year with Amazon's stock, profit is $409.02
+```{r}
+
+yearHalf = stocks %>% filter(Name == "AMZN")
+shortBefore = filter(yearHalf, date == "2016-01-20" )
+shortAfter = filter(yearHalf, date == "2017-06-13" )
+
+shortAfter <- subset(shortAfter, select = c("date", "close", "Name"))
+shortBefore <- subset(shortBefore, select = c( "close", "Name"))
+colnames(shortAfter) <- c("date", "FinalPrice", "Name")
+
+shortbuyHold = merge(shortAfter, shortBefore, by= "Name")
+
+shortbuyHold = shortbuyHold %>% 
+  mutate(profit = FinalPrice - close)
+shortbuyHold
+```
+
+
+#Now lets say, we try to trade Amazon stock every day. Below is one day where Amazon's stock would have made you $9.60. We have to put in account that Amazon's stock wont move like this every day. Something to keep in mind for next time you're choosing between day trading and buying and holding, is that you would have to predict a fairly large movement in Amazon's price about 45 times before you would profit just as much as just buying and holding.  
+```{r}
+
+day = stocks %>% filter(Name == "AMZN")
+shortBefore = filter(day, date == "2017-10-23" )
+shortAfter = filter(day, date == "2017-10-24" )
+
+shortAfter <- subset(shortAfter, select = c("date", "close", "Name"))
+shortBefore <- subset(shortBefore, select = c( "close", "Name"))
+colnames(shortAfter) <- c("date", "FinalPrice", "Name")
+
+shortbuyHold = merge(shortAfter, shortBefore, by= "Name")
+
+dayTrade = shortbuyHold %>% 
+  mutate(profit = FinalPrice - close)
+dayTrade
+```
+
+
